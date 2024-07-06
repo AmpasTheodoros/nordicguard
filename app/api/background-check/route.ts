@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     // Send email notification
     await sendNotificationEmail(
-      user.email, // You'll need to add an email field to your User model
+      user.email,
       'Background Check Completed',
       `The background check for ${name} has been completed. Please log in to view the results.`
     );
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     return NextResponse.json(backgroundCheck);
   } catch (error) {
     console.error('Error processing background check:', error);
-    return NextResponse.json({ error: 'Failed to process background check' }, { status: 401 });
+    return NextResponse.json({ error: 'Failed to process background check' }, { status: 500 });
   }
 }
 

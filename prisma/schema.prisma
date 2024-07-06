@@ -19,11 +19,12 @@ enum UserRole {
 }
 
 model User {
-  id            String           @id @default(cuid())
-  clerkId       String           @unique
-  role          UserRole         @default(USER)
+  id               String           @id @default(cuid())
+  clerkId          String           @unique
+  email            String           @unique
+  role             UserRole         @default(USER)
   backgroundChecks BackgroundCheck[]
-  notifications Notification[]
+  notifications    Notification[]
 }
 
 model Notification {

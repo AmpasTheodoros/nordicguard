@@ -5,6 +5,7 @@ import BackgroundCheckForm from "@/components/BackgroundCheckForm";
 import BackgroundCheckList from "@/components/BackgroundCheckList";
 import BackgroundCheckStats from "@/components/BackgroundCheckStats";
 import NotificationBell from "@/components/NotificationBell";
+import ReportGenerator from "@/components/ReportGenerator";
 import { getOrCreateUser } from '@/lib/user';
 
 export default async function Dashboard() {
@@ -31,6 +32,7 @@ export default async function Dashboard() {
       <BackgroundCheckForm />
       <BackgroundCheckStats />
       <BackgroundCheckList />
+      <ReportGenerator />
     </div>
   );
 }

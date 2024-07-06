@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from 'next/link';
 import { PrismaClient } from '@prisma/client';
 import { getOrCreateUser } from '@/lib/user';
+import AdminReportGenerator from '@/components/AdminReportGenerator';
 
 const prisma = new PrismaClient();
 
@@ -35,7 +36,7 @@ export default async function AdminDashboard() {
           <p className="text-3xl font-bold">{totalBackgroundChecks}</p>
         </div>
       </div>
-      <div className="flex space-x-4">
+      <div className="flex space-x-4 mb-8">
         <Link 
           href="/api/background-check/export"
           className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
@@ -49,6 +50,7 @@ export default async function AdminDashboard() {
           Manage Users
         </Link>
       </div>
+      <AdminReportGenerator />
     </div>
   );
 }
