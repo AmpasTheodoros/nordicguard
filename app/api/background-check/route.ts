@@ -1,22 +1,24 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
 import { PrismaClient } from '@prisma/client';
 import { processBackgroundCheck } from '@/lib/ai-model';
 import { getOrCreateUser } from '@/lib/user';
-import { sendNotificationEmail } from '@/lib/sendgrid';
+import { withRateLimit } from '@/lib/rateLimit';
+import { logger } from '@/lib/logger';
 
 const prisma = new PrismaClient();
 
-export async function POST(request: Request) {
+async function handlePOST(req: NextRequest) {
   const { userId: clerkId } = auth();
 
   if (!clerkId) {
+    logger.warn('Unauthorized access attempt', { path: req.url });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const user = await getOrCreateUser(clerkId);
 
-  const { name, personalNumber } = await request.json();
+  const { name, personalNumber } = await req.json();
 
   try {
     const aiResult = await processBackgroundCheck({ name, personalNumber });
@@ -32,29 +34,14 @@ export async function POST(request: Request) {
       },
     });
 
-    // Create in-app notification
-    await prisma.notification.create({
-      data: {
-        userId: user.id,
-        message: `Background check for ${name} has been completed.`,
-      },
-    });
-
-    // Send email notification
-    await sendNotificationEmail(
-      user.email,
-      'Background Check Completed',
-      `The background check for ${name} has been completed. Please log in to view the results.`
-    );
-
     return NextResponse.json(backgroundCheck);
   } catch (error) {
-    console.error('Error processing background check:', error);
+    logger.error('Error processing background check', { error, clerkId });
     return NextResponse.json({ error: 'Failed to process background check' }, { status: 500 });
   }
 }
 
-export async function GET(request: Request) {
+async function handleGET(req: NextRequest) {
   const { userId: clerkId } = auth();
 
   if (!clerkId) {
@@ -63,7 +50,7 @@ export async function GET(request: Request) {
 
   const user = await getOrCreateUser(clerkId);
 
-  const { searchParams } = new URL(request.url);
+  const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get('page') || '1');
   const limit = parseInt(searchParams.get('limit') || '10');
   const search = searchParams.get('search') || '';
@@ -115,3 +102,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to fetch background checks' }, { status: 500 });
   }
 }
+
+export const POST = withRateLimit(handlePOST);
+export const GET = withRateLimit(handleGET);
