@@ -1,75 +1,59 @@
+import { getCriminalRecords, getFinancialRecords, getEmploymentHistory } from './externalApis';
 
 type BackgroundCheckInput = {
   name: string;
   personalNumber: string;
-  // Add more input fields as needed
 };
 
 type BackgroundCheckResult = {
   riskScore: number;
   flags: string[];
-  categories: {
-    financial: number;
-    criminal: number;
-    employment: number;
-  };
-  recommendations: string[];
-};
-
-// Mock database for demonstration purposes
-const mockDatabase = {
-  criminalRecords: new Set(['19800101-1234', '19900202-5678']),
-  financialDefaults: new Set(['19850505-9876', '19900202-5678']),
-  employmentHistory: new Map([
-    ['19800101-1234', 2],
-    ['19850505-9876', 5],
-    ['19900202-5678', 1],
-  ]),
+  criminalRecords: any[];
+  financialRecord: any;
+  employmentHistory: any[];
 };
 
 export async function processBackgroundCheck(input: BackgroundCheckInput): Promise<BackgroundCheckResult> {
-  // Simulate processing time
-  await new Promise(resolve => setTimeout(resolve, 2000));
-
   const { personalNumber } = input;
 
-  // Check criminal records
-  const hasCriminalRecord = mockDatabase.criminalRecords.has(personalNumber);
+  // Fetch data from external APIs
+  const [criminalRecords, financialRecord, employmentHistory] = await Promise.all([
+    getCriminalRecords(personalNumber),
+    getFinancialRecords(personalNumber),
+    getEmploymentHistory(personalNumber),
+  ]);
 
-  // Check financial defaults
-  const hasFinancialDefaults = mockDatabase.financialDefaults.has(personalNumber);
+  // Calculate risk score
+  let riskScore = 50; // Start with a baseline score
 
-  // Check employment history
-  const employmentYears = mockDatabase.employmentHistory.get(personalNumber) || 0;
+  // Adjust score based on criminal records
+  riskScore += criminalRecords.length * 10;
 
-  // Calculate category scores
-  const criminalScore = hasCriminalRecord ? 100 : 0;
-  const financialScore = hasFinancialDefaults ? 80 : 0;
-  const employmentScore = Math.max(0, 100 - employmentYears * 20); // Lower score for more years of employment
+  // Adjust score based on financial records
+  riskScore += (700 - financialRecord.creditScore) / 10;
+  riskScore += financialRecord.bankruptcies * 15;
 
-  // Calculate overall risk score
-  const riskScore = (criminalScore * 0.4 + financialScore * 0.4 + employmentScore * 0.2);
+  // Adjust score based on employment history
+  const currentJob = employmentHistory.find(job => job.endDate === null);
+  if (!currentJob) {
+    riskScore += 10; // Increase risk if currently unemployed
+  }
 
-  // Determine flags
+  // Cap risk score between 0 and 100
+  riskScore = Math.max(0, Math.min(100, riskScore));
+
+  // Generate flags
   const flags: string[] = [];
-  if (hasCriminalRecord) flags.push('Criminal record found');
-  if (hasFinancialDefaults) flags.push('Financial defaults detected');
-  if (employmentYears < 2) flags.push('Limited employment history');
-
-  // Generate recommendations
-  const recommendations: string[] = [];
-  if (hasCriminalRecord) recommendations.push('Conduct in-depth interview about criminal history');
-  if (hasFinancialDefaults) recommendations.push('Require financial background explanation');
-  if (employmentYears < 2) recommendations.push('Verify recent employment references');
+  if (criminalRecords.length > 0) flags.push('Criminal record found');
+  if (financialRecord.creditScore < 600) flags.push('Low credit score');
+  if (financialRecord.bankruptcies > 0) flags.push('Bankruptcy on record');
+  if (!currentJob) flags.push('Currently unemployed');
 
   return {
     riskScore,
     flags,
-    categories: {
-      criminal: criminalScore,
-      financial: financialScore,
-      employment: employmentScore,
-    },
-    recommendations,
+    criminalRecords,
+    financialRecord,
+    employmentHistory,
   };
 }

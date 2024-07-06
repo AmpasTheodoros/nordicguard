@@ -37,6 +37,11 @@ async function handlePOST(req: NextRequest) {
     return NextResponse.json(backgroundCheck);
   } catch (error) {
     logger.error('Error processing background check', { error, clerkId });
+    
+    if (error instanceof Error && error.message.includes('API')) {
+      return NextResponse.json({ error: 'External API error. Please try again later.' }, { status: 503 });
+    }
+    
     return NextResponse.json({ error: 'Failed to process background check' }, { status: 500 });
   }
 }

@@ -79,7 +79,22 @@ export default function BackgroundCheckList() {
   if (isLoading) {
     return <div>Loading...</div>;
   }
+
+  const renderCheckDetails = (check: BackgroundCheck) => {
+    const result = check.result as any; // Type assertion for demonstration
+    return (
+      <div>
+        <p>Risk Score: {result.riskScore.toFixed(2)}</p>
+        <p>Flags: {result.flags.join(', ')}</p>
+        <p>Criminal Records: {result.criminalRecords.length}</p>
+        <p>Credit Score: {result.financialRecord.creditScore}</p>
+        <p>Bankruptcies: {result.financialRecord.bankruptcies}</p>
+        <p>Current Employment: {result.employmentHistory.find((job: any) => job.endDate === null)?.employer || 'Unemployed'}</p>
+      </div>
+    );
+  };
   
+
   return (
     <div className="mt-8">
       <h2 className="text-xl font-semibold mb-4">Background Checks</h2>
@@ -128,36 +143,19 @@ export default function BackgroundCheckList() {
       ) : (
         <>
           <ul className="space-y-4">
-          {checks.map(check => (
-            <li key={check.id} className="border p-4 rounded-md">
-              <Link href={`/background-check/${check.id}`} className="text-blue-500 hover:underline">
-                <h3 className="font-medium">{check.name}</h3>
-              </Link>
-              <p>Personal Number: {check.personalNumber}</p>
-              <p>Status: {check.status}</p>
-              {check.result && (
-                <>
-                  <p>Risk Score: {check.result.riskScore.toFixed(2)}</p>
-                  <p>Flags: {check.result.flags.join(', ')}</p>
-                  <p>Categories:</p>
-                  <ul className="list-disc list-inside ml-4">
-                    <li>Financial: {check.result.categories.financial}</li>
-                    <li>Criminal: {check.result.categories.criminal}</li>
-                    <li>Employment: {check.result.categories.employment}</li>
-                  </ul>
-                  <p>Recommendations:</p>
-                  <ul className="list-disc list-inside ml-4">
-                    {check.result.recommendations.map((rec, index) => (
-                      <li key={index}>{rec}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
-              <p>Initiated: {new Date(check.initiatedAt).toLocaleString()}</p>
-              {check.completedAt && <p>Completed: {new Date(check.completedAt).toLocaleString()}</p>}
-            </li>
-          ))}
-        </ul>
+            {checks.map(check => (
+              <li key={check.id} className="border p-4 rounded-md">
+                <Link href={`/background-check/${check.id}`} className="text-blue-500 hover:underline">
+                  <h3 className="font-medium">{check.name}</h3>
+                </Link>
+                <p>Personal Number: {check.personalNumber}</p>
+                <p>Status: {check.status}</p>
+                {check.result && renderCheckDetails(check)}
+                <p>Initiated: {new Date(check.initiatedAt).toLocaleString()}</p>
+                {check.completedAt && <p>Completed: {new Date(check.completedAt).toLocaleString()}</p>}
+              </li>
+            ))}
+          </ul>
           <div className="mt-4 flex justify-center space-x-2">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
