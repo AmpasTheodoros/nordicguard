@@ -1,4 +1,3 @@
-import { BackgroundCheck } from '@prisma/client';
 
 type BackgroundCheckInput = {
   name: string;

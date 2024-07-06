@@ -13,13 +13,36 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String           @id @default(cuid())
+  clerkId       String           @unique
+  role          UserRole         @default(USER)
+  backgroundChecks BackgroundCheck[]
+  notifications Notification[]
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
 model BackgroundCheck {
   id             String   @id @default(cuid())
   status         String
   name           String
   personalNumber String
   result         Json?
-  initiatedBy    String
+  initiatedBy    User     @relation(fields: [userId], references: [id])
+  userId         String
   initiatedAt    DateTime @default(now())
   completedAt    DateTime?
 }

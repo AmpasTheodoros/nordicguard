@@ -29,11 +29,25 @@ export default function BackgroundCheckList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [minRiskScore, setMinRiskScore] = useState('');
+  const [maxRiskScore, setMaxRiskScore] = useState('');
 
   const fetchBackgroundChecks = async (page: number) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/background-check?page=${page}&limit=10`);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '10',
+        search: searchTerm,
+        startDate,
+        endDate,
+        minRiskScore,
+        maxRiskScore,
+      });
+      const response = await fetch(`/api/background-check?${params}`);
       if (!response.ok) {
         throw new Error('Failed to fetch background checks');
       }
@@ -50,24 +64,70 @@ export default function BackgroundCheckList() {
 
   useEffect(() => {
     fetchBackgroundChecks(currentPage);
-  }, [currentPage]);
+  }, [currentPage, searchTerm, startDate, endDate, minRiskScore, maxRiskScore]);
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
   };
 
+  const handleFilterChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(1);
+    fetchBackgroundChecks(1);
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
-
+  
   return (
     <div className="mt-8">
-    <h2 className="text-xl font-semibold mb-4">Recent Background Checks</h2>
-    {checks.length === 0 ? (
-      <p>No background checks found.</p>
-    ) : (
-      <>
-        <ul className="space-y-4">
+      <h2 className="text-xl font-semibold mb-4">Background Checks</h2>
+      <form onSubmit={handleFilterChange} className="mb-4 space-y-2">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by name or personal number"
+          className="border p-2 w-full"
+        />
+        <div className="flex space-x-2">
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="border p-2"
+          />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="border p-2"
+          />
+        </div>
+        <div className="flex space-x-2">
+          <input
+            type="number"
+            value={minRiskScore}
+            onChange={(e) => setMinRiskScore(e.target.value)}
+            placeholder="Min Risk Score"
+            className="border p-2"
+          />
+          <input
+            type="number"
+            value={maxRiskScore}
+            onChange={(e) => setMaxRiskScore(e.target.value)}
+            placeholder="Max Risk Score"
+            className="border p-2"
+          />
+        </div>
+        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">Apply Filters</button>
+      </form>
+      {checks.length === 0 ? (
+        <p>No background checks found.</p>
+      ) : (
+        <>
+          <ul className="space-y-4">
           {checks.map(check => (
             <li key={check.id} className="border p-4 rounded-md">
               <Link href={`/background-check/${check.id}`} className="text-blue-500 hover:underline">
