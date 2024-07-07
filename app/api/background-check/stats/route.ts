@@ -22,18 +22,20 @@ export async function GET() {
 
     let lowRisk = 0, mediumRisk = 0, highRisk = 0;
     let totalRiskScore = 0;
+    let validChecksCount = 0;
 
     backgroundChecks.forEach(check => {
       const result = check.result as any; // Type assertion for demonstration
       if (result && typeof result.riskScore === 'number') {
         totalRiskScore += result.riskScore;
+        validChecksCount++;
         if (result.riskScore < 30) lowRisk++;
         else if (result.riskScore < 70) mediumRisk++;
         else highRisk++;
       }
     });
 
-    const averageRiskScore = totalRiskScore / backgroundChecks.length;
+    const averageRiskScore = validChecksCount > 0 ? totalRiskScore / validChecksCount : null;
 
     return NextResponse.json({
       lowRisk,

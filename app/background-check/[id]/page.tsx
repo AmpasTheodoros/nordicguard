@@ -1,15 +1,18 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { PrismaClient } from '@prisma/client';
+import { getOrCreateUser } from '@/lib/user';
 
 const prisma = new PrismaClient();
 
 export default async function BackgroundCheckDetail({ params }: { params: { id: string } }) {
-  const { userId } = auth();
+  const { userId: clerkId } = auth();
 
-  if (!userId) {
+  if (!clerkId) {
     redirect("/sign-in");
   }
+
+  const user = await getOrCreateUser(clerkId);
 
   const check = await prisma.backgroundCheck.findUnique({
     where: { id: params.id },
@@ -30,24 +33,31 @@ export default async function BackgroundCheckDetail({ params }: { params: { id: 
         <p>Status: {check.status}</p>
         {result && (
           <>
-            <p className="font-semibold mt-4">Risk Score: {result.riskScore.toFixed(2)}</p>
+            <p className="font-semibold mt-4">Risk Score: {result.riskScore?.toFixed(2) ?? 'N/A'}</p>
             <p className="font-semibold mt-2">Flags:</p>
             <ul className="list-disc list-inside ml-4">
-              {result.flags.map((flag: string, index: number) => (
+              {result.flags?.map((flag: string, index: number) => (
                 <li key={index}>{flag}</li>
-              ))}
+              )) ?? <li>No flags</li>}
             </ul>
-            <p className="font-semibold mt-2">Categories:</p>
+            <p className="font-semibold mt-2">Criminal Records:</p>
             <ul className="list-disc list-inside ml-4">
-              <li>Financial: {result.categories.financial}</li>
-              <li>Criminal: {result.categories.criminal}</li>
-              <li>Employment: {result.categories.employment}</li>
+              {result.criminalRecords?.map((record: any, index: number) => (
+                <li key={index}>{record.offense} - {record.date}</li>
+              )) ?? <li>No criminal records</li>}
             </ul>
-            <p className="font-semibold mt-2">Recommendations:</p>
+            <p className="font-semibold mt-2">Financial Record:</p>
             <ul className="list-disc list-inside ml-4">
-              {result.recommendations.map((rec: string, index: number) => (
-                <li key={index}>{rec}</li>
-              ))}
+              <li>Credit Score: {result.financialRecord?.creditScore ?? 'N/A'}</li>
+              <li>Bankruptcies: {result.financialRecord?.bankruptcies ?? 'N/A'}</li>
+            </ul>
+            <p className="font-semibold mt-2">Employment History:</p>
+            <ul className="list-disc list-inside ml-4">
+              {result.employmentHistory?.map((job: any, index: number) => (
+                <li key={index}>
+                  {job.employer} - From: {job.startDate}, To: {job.endDate ?? 'Present'}
+                </li>
+              )) ?? <li>No employment history available</li>}
             </ul>
           </>
         )}

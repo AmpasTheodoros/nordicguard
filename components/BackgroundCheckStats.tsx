@@ -7,7 +7,7 @@ type BackgroundCheckStats = {
   lowRisk: number;
   mediumRisk: number;
   highRisk: number;
-  averageRiskScore: number;
+  averageRiskScore: number | null;
 };
 
 export default function BackgroundCheckStats() {
@@ -33,7 +33,7 @@ export default function BackgroundCheckStats() {
   return (
     <div className="mt-8">
       <h2 className="text-xl font-semibold mb-4">Background Check Statistics</h2>
-      <p>Average Risk Score: {stats.averageRiskScore.toFixed(2)}</p>
+      <p>Average Risk Score: {stats.averageRiskScore !== null ? stats.averageRiskScore.toFixed(2) : 'N/A'}</p>
       <div className="h-64 mt-4">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData}>

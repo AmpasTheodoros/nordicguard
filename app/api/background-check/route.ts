@@ -5,6 +5,7 @@ import { processBackgroundCheck } from '@/lib/ai-model';
 import { getOrCreateUser } from '@/lib/user';
 import { withRateLimit } from '@/lib/rateLimit';
 import { logger } from '@/lib/logger';
+import { memoryCache } from '@/lib/memoryCache';
 
 const prisma = new PrismaClient();
 
@@ -33,6 +34,10 @@ async function handlePOST(req: NextRequest) {
         completedAt: new Date(),
       },
     });
+
+    // Invalidate the cache for this user's background checks
+    // Since we can't use wildcards with in-memory cache, we'll clear all cache
+    memoryCache.clear()
 
     return NextResponse.json(backgroundCheck);
   } catch (error) {
@@ -63,6 +68,13 @@ async function handleGET(req: NextRequest) {
   const endDate = searchParams.get('endDate');
   const minRiskScore = searchParams.get('minRiskScore');
   const maxRiskScore = searchParams.get('maxRiskScore');
+
+  const cacheKey = `background-checks:${user.id}:${page}:${limit}:${search}`;
+  const cachedData = memoryCache.get(cacheKey);
+
+  if (cachedData) {
+    return NextResponse.json(cachedData);
+  }
 
   try {
     const where: any = {
@@ -97,11 +109,15 @@ async function handleGET(req: NextRequest) {
       prisma.backgroundCheck.count({ where }),
     ]);
 
-    return NextResponse.json({
+    const result = {
       backgroundChecks,
       totalPages: Math.ceil(total / limit),
       currentPage: page,
-    });
+    };
+
+    memoryCache.set(cacheKey, result, 300); // Cache for 5 minutes
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching background checks:', error);
     return NextResponse.json({ error: 'Failed to fetch background checks' }, { status: 500 });
